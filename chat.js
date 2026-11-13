@@ -1,81 +1,57 @@
-const SYSTEM_GREETING = 'أهلاً بيك في مكتبي! سعيد إنك جيت تزورني. تحب نتكلم عن إيه؟';
+import Anthropic from '@anthropic-ai/sdk';
 
-export function createChat({ messagesElement, form, input, sendButton, onOpenChange }) {
-  const history = [];
-  let busy = false;
+const SYSTEM_PROMPT = `You are Albert Einstein, speaking to a curious student visiting your study in 1925.
+Rules:
+- Speak ONLY in Egyptian Arabic dialect (اللهجة المصرية العامية), warm and playful.
+- Stay strictly in character as Einstein: humble, witty, curious, uses thought experiments.
+- Only discuss facts from your real life (1879–1955), your theories (relativity,
+  photoelectric effect, E=mc²), and your era.
+- If asked about anything after 1955, say you don't know it yet.
+- If you don't know a historical fact, say so honestly — never invent facts.
+- Keep answers under 120 words. Ask the student a follow-up question sometimes.
+- Never break character. Never mention being an AI.`;
 
-  function addMessage(text, role) {
-    const bubble = document.createElement('div');
-    bubble.className = `message ${role === 'user' ? 'user-message' : 'einstein-message'}`;
-    const paragraph = document.createElement('p');
-    paragraph.textContent = text;
-    bubble.appendChild(paragraph);
-    messagesElement.appendChild(bubble);
-    messagesElement.scrollTop = messagesElement.scrollHeight;
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    res.setHeader('Allow', 'POST');
+    return res.status(405).json({ error: 'الطلب ده مش مسموح بيه.' });
   }
 
-  function setTyping(show) {
-    const existing = messagesElement.querySelector('.typing');
-    if (existing) existing.remove();
-    if (show) {
-      const node = document.createElement('div');
-      node.className = 'typing';
-      node.textContent = 'أينشتاين بيفكّر...';
-      messagesElement.appendChild(node);
-      messagesElement.scrollTop = messagesElement.scrollHeight;
-    }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return res.status(500).json({ error: 'مفتاح الخدمة مش متظبط على السيرفر.' });
   }
 
-  async function send(text) {
-    const clean = text.trim();
-    if (!clean || busy) return;
-    busy = true;
-    input.disabled = true;
-    sendButton.disabled = true;
-    addMessage(clean, 'user');
-    history.push({ role: 'user', content: clean });
-    setTyping(true);
-
-    try {
-      const response = await fetch('/api/chat', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: history })
-      });
-      const data = await response.json().catch(() => ({}));
-      if (!response.ok) throw new Error(data.error || 'حصلت مشكلة في الاتصال.');
-      const reply = typeof data.reply === 'string' && data.reply.trim()
-        ? data.reply.trim()
-        : 'معلش، مش قادر أرتّب أفكاري دلوقتي. جرّب تسألني تاني.';
-      history.push({ role: 'assistant', content: reply });
-      addMessage(reply, 'einstein');
-    } catch (error) {
-      // Keep failed user turns out of the conversation history so they can retry.
-      history.pop();
-      addMessage(`مش قادر أوصل للمساعد دلوقتي. ${error.message || 'اتأكد من الاتصال وحاول تاني.'}`, 'einstein');
-    } finally {
-      setTyping(false);
-      busy = false;
-      input.disabled = false;
-      sendButton.disabled = false;
-      input.focus();
+  try {
+    const body = req.body ?? {};
+    const messages = body.messages;
+    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 30) {
+      return res.status(400).json({ error: 'المحادثة غير صالحة. ابعت رسالة تاني.' });
     }
+
+    const safeMessages = messages.map((message) => {
+      if (!message || !['user', 'assistant'].includes(message.role) || typeof message.content !== 'string') {
+        throw new Error('Invalid message format');
+      }
+      return { role: message.role, content: message.content.slice(0, 2000) };
+    });
+
+    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+    const completion = await client.messages.create({
+      model: 'claude-sonnet-4-5',
+      max_tokens: 300,
+      system: SYSTEM_PROMPT,
+      messages: safeMessages
+    });
+
+    const reply = completion.content
+      .filter((block) => block.type === 'text')
+      .map((block) => block.text)
+      .join('\\n')
+      .trim();
+
+    return res.status(200).json({ reply });
+  } catch (error) {
+    console.error('Anthropic chat error:', error);
+    return res.status(500).json({ error: 'حصلت مشكلة وإحنا بنجهّز الرد. جرّب تاني بعد شوية.' });
   }
-
-  form.addEventListener('submit', (event) => {
-    event.preventDefault();
-    const value = input.value;
-    input.value = '';
-    send(value);
-  });
-
-  return {
-    open() { onOpenChange?.(true); input.focus(); },
-    close() { onOpenChange?.(false); },
-    reset() {
-      history.length = 0;
-      messagesElement.replaceChildren();
-      addMessage(SYSTEM_GREETING, 'einstein');
-    }
-  };
 }
