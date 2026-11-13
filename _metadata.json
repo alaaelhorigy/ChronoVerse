@@ -1,0 +1,31 @@
+{
+  "hash": "62f2c6de",
+  "configHash": "bf32a87b",
+  "lockfileHash": "bd70dbe7",
+  "browserHash": "e5f06506",
+  "optimized": {
+    "three": {
+      "src": "../../three/build/three.module.js",
+      "file": "three.js",
+      "fileHash": "967c7bab",
+      "needsInterop": false
+    },
+    "three/addons/controls/PointerLockControls.js": {
+      "src": "../../three/examples/jsm/controls/PointerLockControls.js",
+      "file": "three_addons_controls_PointerLockControls__js.js",
+      "fileHash": "e0c05628",
+      "needsInterop": false
+    },
+    "three/addons/loaders/GLTFLoader.js": {
+      "src": "../../three/examples/jsm/loaders/GLTFLoader.js",
+      "file": "three_addons_loaders_GLTFLoader__js.js",
+      "fileHash": "b5ecbadf",
+      "needsInterop": false
+    }
+  },
+  "chunks": {
+    "chunk-4JECOO4M": {
+      "file": "chunk-4JECOO4M.js"
+    }
+  }
+}
