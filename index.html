@@ -1,0 +1,77 @@
+<!doctype html>
+<html lang="ar" dir="rtl">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#101018" />
+    <meta name="description" content="AI Time Travelers — قابل ألبرت أينشتاين في غرفته." />
+    <title>AI Time Travelers | رحلة إلى أينشتاين</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <main id="app">
+      <section id="landing" class="landing-screen">
+        <div class="landing-glow"></div>
+        <header class="site-header">
+          <div class="brand-mark">⏳</div>
+          <div>
+            <p class="eyebrow">رحلة عبر الزمن</p>
+            <h1 class="brand-name">AI Time Travelers</h1>
+          </div>
+        </header>
+
+        <div class="landing-copy">
+          <p class="eyebrow">المرحلة الأولى · 1925</p>
+          <h2>التاريخ مش مجرد حكاية…<br><span>قابل اللي صنعوه.</span></h2>
+          <p class="landing-description">ادخل غرفة عالم غيّر فهمنا للكون، واسأله بنفسك عن أفكاره واكتشافاته.</p>
+        </div>
+
+        <article class="scientist-card">
+          <div class="portrait-placeholder" aria-label="صورة رمزية لألبرت أينشتاين">
+            <span class="portrait-initial">A</span>
+            <span class="portrait-caption">SCIENTIST No. 001</span>
+          </div>
+          <div class="scientist-info">
+            <p class="eyebrow">العالم الأول · الفيزياء النظرية</p>
+            <h3>ألبرت أينشتاين</h3>
+            <p class="scientist-years">1879 — 1955</p>
+            <p class="scientist-bio">صاحب نظرية النسبية، وأحد أبرز العقول العلمية في القرن العشرين. ارجع إلى عام 1925 واسأله عن الضوء والزمان والكون.</p>
+            <button id="enter-room" class="gold-button">ادخل الغرفة <span>←</span></button>
+          </div>
+        </article>
+        <p class="landing-footnote">نسخة تجريبية تعليمية · Phase 1</p>
+      </section>
+
+      <section id="room-screen" class="room-screen hidden">
+        <div id="three-container" class="three-container"></div>
+        <div class="room-topbar">
+          <div class="room-title"><span>⏳</span><div><strong>مكتب أينشتاين</strong><small>برلين · 1925</small></div></div>
+          <button id="back-button" class="back-button">رجوع ↩</button>
+        </div>
+        <div id="room-loading" class="room-loading"><div class="loader"></div><p>بنجهّز الغرفة…</p></div>
+        <div id="controls-hint" class="controls-hint hidden">W A S D للحركة <span>·</span> حرّك الماوس للنظر <span>·</span> Esc لتحرير الماوس</div>
+        <div id="interaction-prompt" class="interaction-prompt hidden">اضغط <kbd>E</kbd> للحديث مع أينشتاين</div>
+        <div id="lock-overlay" class="lock-overlay hidden">
+          <div class="lock-card"><h2>أهلاً بيك في مكتب أينشتاين</h2><p>اضغط للبدء في التجوّل داخل الغرفة.</p><button id="start-walking" class="gold-button">ابدأ التجوّل</button></div>
+        </div>
+        <aside id="chat-panel" class="chat-panel" aria-label="محادثة أينشتاين">
+          <div class="chat-header">
+            <div><p class="eyebrow">محادثة من عام 1925</p><h2>ألبرت أينشتاين</h2></div>
+            <button id="close-chat" class="icon-button" aria-label="إغلاق المحادثة">×</button>
+          </div>
+          <div id="chat-messages" class="chat-messages">
+            <div class="message einstein-message"><p>أهلاً بيك في مكتبي! سعيد إنك جيت تزورني. تحب نتكلم عن إيه؟</p></div>
+          </div>
+          <form id="chat-form" class="chat-form">
+            <input id="chat-input" type="text" maxlength="500" placeholder="اكتب سؤالك لأينشتاين..." autocomplete="off" />
+            <button id="send-button" type="submit" aria-label="إرسال">➤</button>
+          </form>
+          <p class="chat-disclaimer">إجابات تعليمية تجريبية مبنية على المعلومات التاريخية المتاحة.</p>
+        </aside>
+      </section>
+    </main>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
