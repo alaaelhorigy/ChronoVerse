@@ -1,57 +1,117 @@
-import Anthropic from '@anthropic-ai/sdk';
 
-const SYSTEM_PROMPT = `You are Albert Einstein, speaking to a curious student visiting your study in 1925.
-Rules:
-- Speak ONLY in Egyptian Arabic dialect (اللهجة المصرية العامية), warm and playful.
-- Stay strictly in character as Einstein: humble, witty, curious, uses thought experiments.
-- Only discuss facts from your real life (1879–1955), your theories (relativity,
-  photoelectric effect, E=mc²), and your era.
-- If asked about anything after 1955, say you don't know it yet.
-- If you don't know a historical fact, say so honestly — never invent facts.
-- Keep answers under 120 words. Ask the student a follow-up question sometimes.
-- Never break character. Never mention being an AI.`;
+const SYSTEM_PROMPT = `
+أنت ألبرت أينشتاين، وتستقبل طالبًا فضوليًا يزور مكتبك في عام 1925.
+
+قواعد الحديث:
+- تحدث باللغة العربية الفصحى الواضحة والميسرة فقط.
+- التزم بشخصية ألبرت أينشتاين، واجعل أسلوبك ودودًا وذكيًا وفضوليًا.
+- اشرح الأفكار العلمية باستخدام أمثلة وتجارب ذهنية بسيطة.
+- تحدث عن حياتك ونظرياتك وأعمالك العلمية والأحداث التي عاصرتها حتى عام 1925 فقط.
+- لا تعرف الأحداث التي وقعت بعد عام 1925؛ إذا سُئلت عنها، وضّح أنك لا تعرفها لأنك تعيش في ذلك الزمن.
+- لا تخترع أحداثًا تاريخية أو اقتباسات أو تجارب علمية.
+- إذا لم تعرف إجابة، اعترف بذلك بصدق.
+- لا تتجاوز 120 كلمة في الإجابة الواحدة.
+- لا تخرج عن شخصيتك ولا تتحدث عن كونك نموذج ذكاء اصطناعي.
+- خاطب الطالب كما لو كان يجلس معك في مكتبك ويتحدث إليك مباشرة.
+`;
 
 export default async function handler(req, res) {
-  if (req.method !== 'POST') {
-    res.setHeader('Allow', 'POST');
-    return res.status(405).json({ error: 'الطلب ده مش مسموح بيه.' });
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({
+      error: "طريقة الطلب غير مسموح بها."
+    });
   }
 
-  if (!process.env.ANTHROPIC_API_KEY) {
-    return res.status(500).json({ error: 'مفتاح الخدمة مش متظبط على السيرفر.' });
+  const apiKey = process.env.GEMINI_API_KEY;
+
+  if (!apiKey) {
+    return res.status(500).json({
+      error: "مفتاح Gemini غير مضبوط على السيرفر."
+    });
   }
 
   try {
-    const body = req.body ?? {};
-    const messages = body.messages;
-    if (!Array.isArray(messages) || messages.length === 0 || messages.length > 30) {
-      return res.status(400).json({ error: 'المحادثة غير صالحة. ابعت رسالة تاني.' });
+    const messages = req.body?.messages;
+
+    if (
+      !Array.isArray(messages) ||
+      messages.length === 0 ||
+      messages.length > 30
+    ) {
+      return res.status(400).json({
+        error: "المحادثة غير صالحة."
+      });
     }
 
-    const safeMessages = messages.map((message) => {
-      if (!message || !['user', 'assistant'].includes(message.role) || typeof message.content !== 'string') {
-        throw new Error('Invalid message format');
+    const contents = messages.map((message) => {
+      if (
+        !message ||
+        !["user", "assistant"].includes(message.role) ||
+        typeof message.content !== "string"
+      ) {
+        throw new Error("Invalid message format");
       }
-      return { role: message.role, content: message.content.slice(0, 2000) };
+
+      return {
+        role: message.role === "assistant" ? "model" : "user",
+        parts: [
+          {
+            text: message.content.slice(0, 2000)
+          }
+        ]
+      };
     });
 
-    const client = new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-    const completion = await client.messages.create({
-      model: 'claude-sonnet-4-5',
-      max_tokens: 300,
-      system: SYSTEM_PROMPT,
-      messages: safeMessages
-    });
+    const response = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-goog-api-key": apiKey
+        },
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [{ text: SYSTEM_PROMPT }]
+          },
+          contents,
+          generationConfig: {
+            maxOutputTokens: 300,
+            temperature: 0.7
+          }
+        })
+      }
+    );
 
-    const reply = completion.content
-      .filter((block) => block.type === 'text')
-      .map((block) => block.text)
-      .join('\\n')
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.error("Gemini API error:", data.error?.message);
+      return res.status(500).json({
+        error: "تعذر الحصول على رد من أينشتاين. حاول مرة أخرى."
+      });
+    }
+
+    const reply = data.candidates?.[0]?.content?.parts
+      ?.map((part) => part.text || "")
+      .join("")
       .trim();
 
+    if (!reply) {
+      return res.status(500).json({
+        error: "لم يصل رد صالح من أينشتاين."
+      });
+    }
+
     return res.status(200).json({ reply });
+
   } catch (error) {
-    console.error('Anthropic chat error:', error);
-    return res.status(500).json({ error: 'حصلت مشكلة وإحنا بنجهّز الرد. جرّب تاني بعد شوية.' });
+    console.error("Chat error:", error.message);
+
+    return res.status(500).json({
+      error: "حدثت مشكلة أثناء تجهيز الرد. حاول مرة أخرى."
+    });
   }
 }
+
